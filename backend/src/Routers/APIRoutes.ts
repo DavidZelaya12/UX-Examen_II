@@ -34,3 +34,5 @@ restaurantsRouter.put("reserve/", async (req, res) => {
     )
     res.json(reservation);
 });
+
+export default restaurantsRouter;
