@@ -31,3 +31,67 @@ export const sequelize = process.env.DATABASE_URL
             } : {},
         }
     );
+
+
+export const restaurants = sequelize.define('restaurants', {
+    IDRestaurant: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: null,
+        unique: true
+    },
+    Description: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: null,
+        unique: true
+    }
+}, {
+    freezeTableName: true,
+}
+);
+
+export const restaurant_aviability = sequelize.define('restaurant_aviability', {
+    ID_Aviability: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    IDRestaurant: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: restaurants,
+            key: 'IDRestaurant'
+        }
+    },
+    scheduled_time: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: null,
+    },
+    reserved: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: false,
+    },
+    reserved_by: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+    }
+
+}, {
+    freezeTableName: true,
+}
+);
+
+restaurants.hasMany(restaurant_aviability, { foreignKey: 'IDRestaurant' });
+restaurant_aviability.belongsTo(restaurants, { foreignKey: 'IDRestaurant' });
+
+
