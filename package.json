@@ -1,0 +1,23 @@
+{
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/pg": "^8.11.10"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.1.5",
+    "al": "^0.0.3",
+    "all": "^0.0.0",
+    "axios": "^1.7.7",
+    "chart.js": "^4.4.6",
+    "date-fns": "^4.1.0",
+    "dependences": "^0.0.1-security",
+    "dependencies": "^0.0.1",
+    "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "react-chartjs-2": "^5.2.0",
+    "react-modal": "^3.16.1",
+    "xlsx": "^0.18.5"
+  }
+}

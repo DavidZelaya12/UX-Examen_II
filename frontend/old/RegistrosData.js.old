@@ -1,0 +1,81 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const useRegistrosData = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Función para imprimir los registros en consola
+  const imprimirRegistros = (registros) => {
+    console.log(
+      "Registros traidos de la base de datos incluyendo el nombre y Identidad:",
+      registros
+    );
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const incidentsResponse = await axios.get(
+          "http://localhost:8000/incident/get-incidents"
+        );
+        console.log("API Response:", incidentsResponse);
+        const incidents = incidentsResponse.data || [];
+
+        const incidentsWithUserDetails = incidents.map((incident) => ({
+          ...incident,
+          No_Identidad: incident.Persona?.No_Identidad || "No disponible",
+          Nombre: incident.Persona?.Nombre || "No disponible",
+        }));
+
+        setData(incidentsWithUserDetails);
+
+        // Imprimir registros en consola
+        imprimirRegistros(incidentsWithUserDetails);
+      } catch (err) {
+        setError(err);
+        console.error("Error fetching data:", err); // Imprime el error en consola
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Función para actualizar un incidente en la base de datos por el id del incidente
+  const updateIncident = async (incidentData) => {
+    try {
+      console.log("Updating incident with data:", incidentData);
+      const response = await axios.put(
+        `http://localhost:8000/incident/update-incident/${incidentData.IDIncidente}`,
+        incidentData
+      );
+      console.log("Update Response:", response);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating incident:", error);
+      throw error;
+    }
+  };
+
+  //Funcion para actualizar una persona por el id
+  const updatePersonById = async (personData) => {
+    try {
+      const response = await axios.put(
+        "http://localhost:8000/user/update-person-by-id",
+        personData
+      );
+      console.log("Update Response:", response);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating person:", error);
+      throw error;
+    }
+  };
+
+  return { data, loading, error, updateIncident, updatePersonById };
+};
+
+export default useRegistrosData;

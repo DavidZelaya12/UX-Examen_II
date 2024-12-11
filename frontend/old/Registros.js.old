@@ -1,0 +1,493 @@
+import React, { useState, useEffect } from "react";
+import "./Registros.css";
+import { SearchFilterContainer } from "./Filtrado_Buscar_Nombre";
+import Modal from "react-modal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import useRegistrosData from "./RegistrosData";
+
+// Configurar el elemento raíz para el modal
+Modal.setAppElement("#root");
+
+const RegistroTable = ({ isLimitado, showEstadoColor }) => {
+  const { data, loading, error, updateIncident, updatePersonById } =
+    useRegistrosData();
+  const [registros, setRegistros] = useState([]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const registrosPerPage = 6;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [editModalIsOpen, setEditModalIsOpen] = useState(false);
+  const [selectedRegistro, setSelectedRegistro] = useState(null);
+  const [editRegistro, setEditRegistro] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(""); // Estado para el mensaje de éxito
+  const [animationClass, setAnimationClass] = useState("fade-in");
+
+  const [filter, setFilter] = useState("nombre");
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [selectedFilterLabel, setSelectedFilterLabel] = useState("Filtrar");
+  const [sort, setSort] = useState("nombre");
+
+  useEffect(() => {
+    if (Array.isArray(data)) {
+      setRegistros(data);
+    }
+  }, [data]);
+
+  const getFilteredAndSortedRegistros = () => {
+    if (!Array.isArray(registros)) {
+      return [];
+    }
+
+    let filteredRegistros = registros;
+
+    if (filter === "nombre") {
+      filteredRegistros = filteredRegistros.filter(
+        (registro) =>
+          registro.Nombre &&
+          registro.Nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    } else if (filter === "identidad") {
+      filteredRegistros = filteredRegistros.filter(
+        (registro) =>
+          registro.No_Identidad &&
+          registro.No_Identidad.toString().includes(searchTerm)
+      );
+    } else if (filter === "TipoIncidente") {
+      filteredRegistros = filteredRegistros.filter(
+        (registro) =>
+          registro.TipoIncidente &&
+          registro.TipoIncidente.toLowerCase().includes(
+            searchTerm.toLowerCase()
+          )
+      );
+    } else if (filter === "Prioridad") {
+      filteredRegistros = filteredRegistros.filter(
+        (registro) =>
+          registro.Prioridad &&
+          registro.Prioridad.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (sort === "nombre") {
+      filteredRegistros.sort((a, b) => a.Nombre.localeCompare(b.Nombre));
+    } else if (sort === "identidad") {
+      filteredRegistros.sort((a, b) =>
+        a.No_Identidad.toString().localeCompare(b.No_Identidad.toString())
+      );
+    } else if (sort === "TipoIncidente") {
+      filteredRegistros.sort((a, b) =>
+        a.TipoIncidente.toString().localeCompare(b.TipoIncidente.toString())
+      );
+    } else if (sort === "Prioridad") {
+      filteredRegistros.sort((a, b) =>
+        a.Prioridad.toString().localeCompare(b.Prioridad.toString())
+      );
+    }
+    return filteredRegistros;
+  };
+
+  const handleFilterChange = (selectedFilter) => {
+    setSelectedFilterLabel(selectedFilter);
+    setTimeout(() => {
+      setSelectedFilterLabel("Filtrar");
+    }, 6000);
+  };
+
+  const totalPages = Math.ceil(registros.length / registrosPerPage);
+
+  const handlePageClick = (pageIndex) => {
+    setAnimationClass("fade-out");
+    setTimeout(() => {
+      setCurrentPage(pageIndex);
+      setAnimationClass("fade-in");
+    }, 300);
+  };
+
+  const verDetalles = (registro) => {
+    setSelectedRegistro(registro);
+    setModalIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalIsOpen(false);
+    setSelectedRegistro(null);
+  };
+
+  const editarRegistro = (registro) => {
+    setEditRegistro({ ...registro });
+    setEditModalIsOpen(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditRegistro((prevRegistro) => ({
+      ...prevRegistro,
+      [name]: value,
+    }));
+  };
+
+  const saveEdit = async () => {
+    try {
+      const updatedRegistro = {
+        ...editRegistro,
+        ProblemasMedicos: Array.isArray(editRegistro.ProblemasMedicos)
+          ? editRegistro.ProblemasMedicos
+          : [editRegistro.ProblemasMedicos],
+        Traumas: Array.isArray(editRegistro.Traumas)
+          ? editRegistro.Traumas
+          : [editRegistro.Traumas],
+      };
+      console.log("Saving edit with data:", updatedRegistro); // Verifica los datos enviados al servidor
+      await updateIncident(updatedRegistro);
+      await updatePersonById({
+        IDPersona: updatedRegistro.IDPersona,
+        No_Identidad: updatedRegistro.No_Identidad,
+        Nombre: updatedRegistro.Nombre,
+      });
+      setRegistros((prevRegistros) =>
+        prevRegistros.map((registro) =>
+          registro.IDIncidente === editRegistro.IDIncidente
+            ? updatedRegistro
+            : registro
+        )
+      );
+      setSuccessMessage(`El campo se modificó correctamente`); // Establece el mensaje de éxito
+      setTimeout(() => {
+        setSuccessMessage(""); // Limpia el mensaje de éxito después de 3 segundos
+      }, 3000);
+      closeEditModal();
+    } catch (error) {
+      console.error("Error saving edit:", error);
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditModalIsOpen(false);
+    setEditRegistro(null);
+  };
+
+  const startIndex = (currentPage - 1) * registrosPerPage;
+  const endIndex = startIndex + registrosPerPage;
+
+  const currentRegistros = getFilteredAndSortedRegistros().slice(
+    startIndex,
+    endIndex
+  );
+
+  const formatFechaNacimiento = (fecha) => {
+    const date = new Date(fecha);
+    const options = { year: "numeric", month: "long", day: "numeric" };
+    return date.toLocaleDateString("es-ES", options);
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div className="Registros-container">
+      <div className="top-bar">
+        <div className="button-container">
+          <SearchFilterContainer
+            isLimitado={isLimitado}
+            onSearch={setSearchTerm}
+          />
+          {isLimitado && (
+            <button
+              className="filter-button"
+              onClick={() => setFilterModalOpen(true)}
+            >
+              {selectedFilterLabel}
+            </button>
+          )}
+        </div>
+      </div>
+      {successMessage && (
+        <div className="success-message">{successMessage}</div>
+      )}{" "}
+      {/* Muestra el mensaje de éxito */}
+      <div className="registros-table-container">
+        <table className={`registros-table ${animationClass}`}>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Identidad</th>
+              <th>Nombre</th>
+              <th>Tipo Incidente</th>
+              <th>Prioridad</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentRegistros.map((registro, index) => (
+              <tr key={index}>
+                <td className={`index `}>{startIndex + index + 1}</td>
+                <td className={`ID_n `}>{registro.No_Identidad}</td>
+                <td className={`Nombre `}>{registro.Nombre}</td>
+                <td className={`fecha `}>{registro.TipoIncidente}</td>
+                <td className={`Nombre `}>{registro.Prioridad}</td>
+                <td className="actions">
+                  {isLimitado && (
+                    <button onClick={() => editarRegistro(registro)}>
+                      <FontAwesomeIcon
+                        icon={faEdit}
+                        style={{ color: "black" }}
+                      />
+                    </button>
+                  )}
+                  <button onClick={() => verDetalles(registro)}>ℹ️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="registros-pagination">
+        {Array.from({ length: totalPages }, (_, index) => (
+          <button
+            key={index + 1}
+            className={`registros-pagination-button ${
+              currentPage === index + 1 ? "active" : ""
+            }`}
+            onClick={() => handlePageClick(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+      {selectedRegistro && (
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          className="modal-content show"
+          overlayClassName="modal-content-overlay show"
+          contentLabel="Detalles del Registro"
+        >
+          <h2>Detalles del Registro</h2>
+          <div className="input-row-Resgistros">
+            <p>Identidad</p>
+            <input type="text" value={selectedRegistro.No_Identidad} readOnly />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Nombre</p>
+            <input type="text" value={selectedRegistro.Nombre} readOnly />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Tipo Incidente</p>
+            <input
+              type="text"
+              value={selectedRegistro.TipoIncidente}
+              readOnly
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Fecha</p>
+            <input
+              type="text"
+              value={formatFechaNacimiento(selectedRegistro.Fecha)}
+              readOnly
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Prioridad</p>
+            <input type="text" value={selectedRegistro.Prioridad} readOnly />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Lugar</p>
+            <input type="text" value={selectedRegistro.Lugar} readOnly />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Tipo De Traslado</p>
+            <input type="text" value={selectedRegistro.TipoTraslado} readOnly />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Material Utilizado</p>
+            <input
+              type="text"
+              value={selectedRegistro.MaterialUtilizado}
+              readOnly
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Problemas Medicos</p>
+            <input
+              type="text"
+              value={selectedRegistro.ProblemasMedicos}
+              readOnly
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Traumas</p>
+            <textarea
+              name="Traumas"
+              value={selectedRegistro.Traumas}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Historia Accidente</p>
+            <textarea
+              name="HistoriaAccidente"
+              value={selectedRegistro.HistoriaAccidente}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="button-row">
+            <button className="cerrao" onClick={closeModal}>
+              Cerrar
+            </button>
+          </div>
+        </Modal>
+      )}
+      {editRegistro && (
+        <Modal
+          isOpen={editModalIsOpen}
+          onRequestClose={closeEditModal}
+          className="modal-content"
+          overlayClassName="modal-content-overlay"
+          contentLabel="Editar Registro"
+        >
+          <h2>Editar Registro</h2>
+          <div className="input-row-Resgistros">
+            <p>ID</p>
+            <input
+              type="text"
+              name="No_Identidad"
+              value={editRegistro.No_Identidad}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Nombre</p>
+            <input
+              type="text"
+              name="Nombre"
+              value={editRegistro.Nombre}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Tipo De Incidente</p>
+            <input
+              type="text"
+              name="TipoIncidente"
+              value={editRegistro.TipoIncidente}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Fecha Accidente</p>
+            <input
+              type="date"
+              name="Fecha"
+              value={editRegistro.Fecha || ""}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Prioridad</p>
+            <input
+              type="text"
+              name="Prioridad"
+              value={editRegistro.Prioridad}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="input-row-Resgistros">
+            <p>Lugar</p>
+            <input
+              type="text"
+              name="Lugar"
+              value={editRegistro.Lugar}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="input-row-Resgistros">
+            <p>Tipo De Traslado</p>
+            <input
+              type="text"
+              name="TipoTraslado"
+              value={editRegistro.TipoTraslado}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="input-row-Resgistros">
+            <p>Material Utilizado</p>
+            <input
+              type="text"
+              name="MaterialUtilizado"
+              value={editRegistro.MaterialUtilizado}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="input-row-Resgistros">
+            <p>Problemas Medicos</p>
+            <input
+              type="text"
+              name="ProblemasMedicos"
+              value={editRegistro.ProblemasMedicos}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="input-row-Resgistros">
+            <p>Traumas</p>
+            <textarea
+              name="Traumas"
+              value={editRegistro.Traumas}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="input-row-Resgistros">
+            <p>Historia Accidente</p>
+            <textarea
+              name="HistoriaAccidente"
+              value={editRegistro.HistoriaAccidente}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          <div className="button-row">
+            <button className="save" onClick={saveEdit}>
+              Guardar
+            </button>
+            <button className="cerrao" onClick={closeEditModal}>
+              Cerrar
+            </button>
+          </div>
+        </Modal>
+      )}
+      {filterModalOpen && (
+        <Modal
+          isOpen={filterModalOpen}
+          onRequestClose={() => setFilterModalOpen(false)}
+          className="modal-content"
+          overlayClassName="modal-content-overlay"
+          contentLabel="Filtro"
+        >
+          <select
+            onChange={(e) => {
+              setFilter(e.target.value);
+              handleFilterChange(e.target.options[e.target.selectedIndex].text);
+              setFilterModalOpen(false);
+            }}
+            value={filter}
+          >
+            <option value="identidad">Identidad</option>
+            <option value="nombre">Nombre</option>
+            <option value="TipoIncidente">Tipo Incidente</option>
+            <option value="Prioridad">Prioridad</option>
+          </select>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default RegistroTable;

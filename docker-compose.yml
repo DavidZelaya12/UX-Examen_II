@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  database:
+    image: postgres:13
+    container_name: Examen-DB
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: copeco
+      POSTGRES_PASSWORD: copecounitec2024
+      POSTGRES_DB: copecoDB
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    image: copeco-backend
+    container_name: Backend-Examen
+    ports:
+      - "8000:8000"
+    environment:
+      - .env
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - database
+
+volumes:
+  data: {}

@@ -1,0 +1,11 @@
+{
+    "name": "Backend Deployment",
+    "scripts": {
+        "postdeploy": "cd backend && npm install && npm run start"
+    },
+    "buildpacks": [
+        {
+            "url": "heroku/nodejs"
+        }
+    ]
+}
