@@ -41,13 +41,13 @@ export const restaurants = sequelize.define('restaurants', {
     },
     Name: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         defaultValue: null,
         unique: true
     },
     Description: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         defaultValue: null,
         unique: true
     }
@@ -64,7 +64,7 @@ export const restaurant_aviability = sequelize.define('restaurant_aviability', {
     },
     IDRestaurant: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: restaurants,
             key: 'IDRestaurant'
@@ -72,13 +72,13 @@ export const restaurant_aviability = sequelize.define('restaurant_aviability', {
     },
     scheduled_time: {
         type: DataTypes.DATE,
-        allowNull: false,
+        allowNull: true,
         defaultValue: null,
     },
     reserved: {
-        type: DataTypes.TINYINT,
-        allowNull: false,
-        defaultValue: false,
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
     },
     reserved_by: {
         type: DataTypes.STRING,
